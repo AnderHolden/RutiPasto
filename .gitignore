@@ -1,8 +1,5 @@
-# OS & IDE files
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
+# Local files only (not for production deployment)
+presentacion.html
 
 # Logs
 *.log
