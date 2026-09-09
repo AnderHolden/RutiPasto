@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustentación del Proyecto - Rutas Pasto Offline (SETPasto PWA)</title>
+    <style>
+        :root {
+            --color-primary: #0A1F44;
+            --color-primary-dark: #06132B;
+            --color-accent: #FF6B00;
+            --color-accent-hover: #E05E00;
+            --color-accent-bg: rgba(255, 107, 0, 0.12);
+            --color-bg: #0B1120;
+            --color-surface: #1E293B;
+            --color-surface-card: #152238;
+            --color-border: #334155;
+            --color-text: #F8FAFC;
+            --color-text-muted: #94A3B8;
+            --color-success: #10B981;
+            --color-cyan: #38BDF8;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Navigation Bar */
+        .pres-header {
+            background-color: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .pres-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .pres-brand-badge {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            color: #fff;
+            padding: 0.25rem 0.6rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .slide-counter {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            background: var(--color-surface-card);
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            border: 1px solid var(--color-border);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-live {
+            background: var(--color-accent);
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: background 0.2s;
+        }
+
+        .btn-live:hover {
+            background: var(--color-accent-hover);
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background: var(--color-surface);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--color-accent);
+            width: 10%;
+            transition: width 0.3s ease;
+        }
+
+        /* Slides Viewport */
+        .slides-viewport {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            max-width: 1050px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Slide Typography & Layouts */
+        .slide-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-accent);
+            background: var(--color-accent-bg);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            margin-bottom: 0.75rem;
+        }
+
+        .slide-title {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.25rem;
+            color: #FFFFFF;
+            line-height: 1.2;
+        }
+
+        .slide-subtitle {
+            font-size: 1.1rem;
+            color: var(--color-text-muted);
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.25rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-top: 1.25rem;
+        }
+
+        .card {
+            background: var(--color-surface-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--color-accent);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 800;
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+            color: #FFFFFF;
+        }
+
+        .card-header .icon {
+            color: var(--color-accent);
+            font-size: 1.2rem;
+        }
+
+        .card-body {
+            font-size: 0.88rem;
+            color: var(--color-text-muted);
+            line-height: 1.5;
+        }
+
+        /* Function Dictionary Specific Styling */
+        .func-box {
+            background: #090E17;
+            border-left: 4px solid var(--color-accent);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            border-top: 1px solid var(--color-border);
+            border-right: 1px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .func-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.4rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .func-name {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-cyan);
+        }
+
+        .func-tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--color-cyan);
+        }
+
+        .func-desc {
+            font-size: 0.85rem;
+            color: #CBD5E1;
+            line-height: 1.45;
+        }
+
+        .func-desc strong {
+            color: #FFFFFF;
+        }
+
+        /* Stat Badges */
+        .stats-banner {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-item {
+            background: var(--color-surface-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--color-accent);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--color-text-muted);
+        }
+
+        /* Bottom Controls Bar */
+        .pres-footer {
+            background-color: var(--color-surface);
+            border-top: 1px solid var(--color-border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .footer-shortcuts {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .kbd {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-family: monospace;
+            color: var(--color-text);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .btn-nav {
+            background: var(--color-surface-card);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+
+        .btn-nav:hover:not(:disabled) {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: #FFFFFF;
+        }
+
+        .btn-nav:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Highlighting Pills */
+        .pill {
+            display: inline-block;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--color-success);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 1.5rem;
+            }
+            .slide-title {
+                font-size: 1.5rem;
+            }
+            .footer-shortcuts {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="pres-header">
+        <div class="pres-brand">
+            <span class="pres-brand-badge">PROYECTO</span>
+            <span>Rutas Pasto Offline</span>
+        </div>
+        <div class="header-actions">
+            <span id="slideCounter" class="slide-counter">Diapositiva 1 / 10</span>
+            <a href="https://rutipasto.urbanoivan10.workers.dev/" target="_blank" class="btn-live">
+                <span>🌐 Ver App en Vivo</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Barra de Progreso -->
+    <div class="progress-bar-container">
+        <div id="progressBar" class="progress-bar-fill"></div>
+    </div>
+
+    <!-- Contenedor Principal de Diapositivas -->
+    <main class="slides-viewport">
+
+        <!-- SLIDE 1: PORTADA -->
+        <section class="slide active" data-slide="1">
+            <span class="slide-tag">Sustentación de Proyecto de Software</span>
+            <h1 class="slide-title">Rutas Pasto Offline (PWA)</h1>
+            <p class="slide-subtitle">
+                Sistema Integral y Autónomo para la Consulta del Transporte Público Urbano de San Juan de Pasto (SETPasto / Avante) sin Conexión a Internet.
+            </p>
+
+            <div class="stats-banner">
+                <div class="stat-item">
+                    <div class="stat-num">23</div>
+                    <div class="stat-label">Rutas Oficiales</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">+1.700</div>
+                    <div class="stat-label">Paradas Georreferenciadas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">100%</div>
+                    <div class="stat-label">Offline (Cache First)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">$2.700</div>
+                    <div class="stat-label">Tarifa Oficial</div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem; background: rgba(255, 107, 0, 0.08); border-color: rgba(255, 107, 0, 0.3);">
+                <div class="card-header">
+                    <span class="icon">🚀</span>
+                    <span>Objetivo Central del Proyecto</span>
+                </div>
+                <div class="card-body" style="color: #F8FAFC;">
+                    Garantizar a la ciudadanía de Pasto el acceso democrático, rápido y gratuito a la información operativa de movilidad urbana (recorridos, sentidos de ida/retorno, horarios y paradas), funcionando de manera nativa en cualquier dispositivo sin requerir saldo ni plan de datos.
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: EL PROBLEMA Y LA SOLUCIÓN -->
+        <section class="slide" data-slide="2">
+            <span class="slide-tag">Contexto & Justificación</span>
+            <h2 class="slide-title">El Problema y la Propuesta de Valor</h2>
+            <p class="slide-subtitle">¿Por qué nace Rutas Pasto Offline y qué necesidad social resuelve?</p>
+
+            <div class="grid-2">
+                <div class="card" style="border-left: 4px solid #EF4444;">
+                    <div class="card-header">
+                        <span class="icon">⚠️</span>
+                        <span>La Problemática en San Juan de Pasto</span>
+                    </div>
+                    <div class="card-body">
+                        <ul style="padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.6rem;">
+                            <li><strong>Brecha de Conectividad:</strong> Muchos usuarios (estudiantes, adultos mayores y trabajadores) no cuentan con datos móviles activos al esperar un bus en la calle.</li>
+                            <li><strong>Complejidad de Rutas:</strong> Con 23 rutas urbanas y diferencias marcadas entre IDA y RETORNO, los usuarios desconocen dónde transbordar o bajarse.</li>
+                            <li><strong>Dependencia de Servidores Centrales:</strong> Las apps tradicionales colapsan si el servidor se cae o no hay señal 4G en zonas periféricas (ej. Cabrera, Obonuco, Catambuco).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #10B981;">
+                    <div class="card-header">
+                        <span class="icon">💡</span>
+                        <span>La Solución Desarrollada</span>
+                    </div>
+                    <div class="card-body">
+                        <ul style="padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.6rem;">
+                            <li><strong>Tecnología PWA (Progressive Web App):</strong> Se instala directamente desde el navegador en Android, iPhone o PC sin pasar por Play Store ni ocupar espacio excesivo.</li>
+                            <li><strong>Autonomía Total sin Conexión:</strong> Almacena en la caché del móvil los datos y mapas necesarios para funcionar sin consumir ni un solo megabyte.</li>
+                            <li><strong>Información Rigurosa:</strong> Cero datos inventados; recopila paradas oficiales con códigos del SETP y coordenadas GPS exactas.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: STACK TECNOLÓGICO Y FILOSOFÍA -->
+        <section class="slide" data-slide="3">
+            <span class="slide-tag">Ingeniería de Software</span>
+            <h2 class="slide-title">Stack Tecnológico 100% Nativo</h2>
+            <p class="slide-subtitle">Una arquitectura sin dependencias pesadas: máxima velocidad y longevidad.</p>
+
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">🌐</span>
+                        <span>HTML5 Semántico</span>
+                    </div>
+                    <div class="card-body">
+                        Estructura limpia, accesible y optimizada para lectores de pantalla y navegadores móviles. Etiquetas semánticas nativas y meta-tags PWA para pantalla completa.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">🎨</span>
+                        <span>CSS3 Variables</span>
+                    </div>
+                    <div class="card-body">
+                        Diseño <strong>Mobile-First</strong> con <em>CSS Custom Properties</em>. Soporta cambio dinámico de Modo Claro y Oscuro con persistencia en <code>localStorage</code> sin recargar.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">⚡</span>
+                        <span>JavaScript ES6+ Vanilla</span>
+                    </div>
+                    <div class="card-body">
+                        Código puro y modular. Sin React, Vue o Angular. Cero tiempo de compilación y arranque instantáneo (&lt;100ms) sin sobrecargar la memoria del teléfono.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">🗺️</span>
+                        <span>Leaflet 1.9.4 Local</span>
+                    </div>
+                    <div class="card-body">
+                        El motor cartográfico y sus estilos están guardados localmente dentro del proyecto (<code>assets/leaflet/</code>). No depende de CDNs externas que puedan caerse.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">⚙️</span>
+                        <span>Service Worker & Cache</span>
+                    </div>
+                    <div class="card-body">
+                        Estrategia <strong>Cache First</strong> en segundo plano. Intercepta todas las peticiones para entregar el contenido almacenado en el disco del usuario.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">☁️</span>
+                        <span>Cloudflare Edge</span>
+                    </div>
+                    <div class="card-body">
+                        Alojamiento en Cloudflare Pages conectado a GitHub, con soporte de cabeceras seguras (<code>_headers</code>) para distribución global ultrarrápida con SSL.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: DATOS OFICIALES DE SETPASTO -->
+        <section class="slide" data-slide="4">
+            <span class="slide-tag">Datos y Rigor Técnico</span>
+            <h2 class="slide-title">23 Rutas Urbanas Oficiales</h2>
+            <p class="slide-subtitle">Cobertura integral de la red de transporte público colectivo de Pasto.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header" style="color: var(--color-cyan);">
+                        <span class="icon">🔷</span>
+                        <span>16 Rutas Complementarias (C1 – C16)</span>
+                    </div>
+                    <div class="card-body" style="font-size: 0.82rem; line-height: 1.6;">
+                        <strong>C1:</strong> Obonuco ↔ Altos de Chapalito<br>
+                        <strong>C2:</strong> Altavista ↔ La Paz<br>
+                        <strong>C3:</strong> Gilberto Pabón ↔ Arnulfo Guerrero<br>
+                        <strong>C4:</strong> Jongovito ↔ El Porvenir<br>
+                        <strong>C5:</strong> Buesaquillo / Puente Tabla ↔ UDENAR / Briceño<br>
+                        <strong>C6:</strong> Catambuco / Coba Negra ↔ CAM Anganoy<br>
+                        <strong>C7:</strong> San Juan de Anganoy ↔ Altos de Chapalito<br>
+                        <strong>C8:</strong> Cujacal ↔ San Martín<br>
+                        <strong>C9:</strong> Villa Nueva ↔ UDENAR<br>
+                        <strong>C10:</strong> Jamondino ↔ Briceño<br>
+                        <strong>C11:</strong> Villa Nueva ↔ Mocondino<br>
+                        <strong>C12:</strong> Briceño ↔ Villaflor / Briceño<br>
+                        <strong>C13:</strong> Hosp. Santa Mónica ↔ Santa Rita<br>
+                        <strong>C14:</strong> Altos de Daza ↔ Lorenzo<br>
+                        <strong>C15:</strong> Obonuco ↔ Villa Nueva<br>
+                        <strong>C16:</strong> Cabrera / La Laguna ↔ Anganoy
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header" style="color: var(--color-accent);">
+                        <span class="icon">🔶</span>
+                        <span>7 Rutas Estratégicas (E1 – E7)</span>
+                    </div>
+                    <div class="card-body" style="font-size: 0.85rem; line-height: 1.8;">
+                        <strong>E1:</strong> Dolores ↔ UDENAR<br>
+                        <strong>E2:</strong> Altos de Chapalito ↔ UDENAR<br>
+                        <strong>E3:</strong> Altamira ↔ San Ezequiel Moreno<br>
+                        <strong>E4:</strong> Genoy ↔ Jamondino<br>
+                        <strong>E5:</strong> Briceño ↔ Catambuco<br>
+                        <strong>E6:</strong> Sindagua ↔ Mariluz<br>
+                        <strong>E7:</strong> Anganoy ↔ Sol de Oriente
+                        <div style="margin-top: 1.5rem; padding: 0.75rem; background: var(--color-bg); border-radius: 8px; border-left: 3px solid var(--color-accent);">
+                            <strong>Diferenciación IDA / RETORNO:</strong><br>
+                            Los buses urbanos no recorren las mismas calles al regresar. Cada sentido cuenta con su propia polilínea y paradas independientes.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: ESTRUCTURA DE ARCHIVOS -->
+        <section class="slide" data-slide="5">
+            <span class="slide-tag">Arquitectura del Proyecto</span>
+            <h2 class="slide-title">Estructura Modular de Archivos</h2>
+            <p class="slide-subtitle">Organización limpia con separación de responsabilidades.</p>
+
+            <div class="grid-2">
+                <div class="card" style="font-family: monospace; font-size: 0.85rem; line-height: 1.7;">
+                    <div style="color: var(--color-cyan); font-weight: 800; margin-bottom: 0.5rem;">📁 rutas-pasto-offline/</div>
+                    ├── 📄 index.html<br>
+                    ├── 🎨 styles.css<br>
+                    ├── ⚡ app.js<br>
+                    ├── ⚙️ sw.js<br>
+                    ├── 📱 manifest.json<br>
+                    ├── 🛡️ _headers<br>
+                    ├── 📂 data/<br>
+                    │&nbsp;&nbsp;&nbsp;└── 💾 rutas.js<br>
+                    ├── 📂 assets/<br>
+                    │&nbsp;&nbsp;&nbsp;├── 📂 icons/ (icon-192, icon-512)<br>
+                    │&nbsp;&nbsp;&nbsp;└── 📂 leaflet/ (css, js, images)<br>
+                    └── 📖 README.md
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">📦</span>
+                        <span>Roles de cada Archivo</span>
+                    </div>
+                    <div class="card-body" style="font-size: 0.84rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div><strong>index.html:</strong> Interfaz del usuario, buscador, contenedor del mapa y ficha técnica.</div>
+                        <div><strong>styles.css:</strong> Sistema de diseño adaptativo, tema oscuro, animaciones y marcadores.</div>
+                        <div><strong>data/rutas.js:</strong> Base de datos estática aislada con las 23 rutas y más de 1.700 paradas.</div>
+                        <div><strong>app.js:</strong> Lógica principal, control del mapa, geolocalización y eventos.</div>
+                        <div><strong>sw.js:</strong> Service Worker que gestiona la persistencia offline y la navegación PWA.</div>
+                        <div><strong>_headers:</strong> Reglas HTTP para Cloudflare Edge (prevención de caché en sw.js).</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: FUNCIONES (PARTE 1: INICIALIZACIÓN Y MAPA) -->
+        <section class="slide" data-slide="6">
+            <span class="slide-tag">Diccionario de Funciones (1/3)</span>
+            <h2 class="slide-title">Inicialización, Validación y Mapa</h2>
+            <p class="slide-subtitle">Funciones que gestionan la carga de datos y el motor cartográfico.</p>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">cargarRutas()</span>
+                    <span class="func-tag">Inicio / Datos</span>
+                </div>
+                <div class="func-desc">
+                    Lee el array global <code>RUTAS_PASTO</code> desde <code>data/rutas.js</code> y lo asigna al estado reactivo <code>AppState.rutas</code>. Si el archivo no existe o se corrompe, emite un error controlado para no romper la interfaz.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">validarDatos()</span>
+                    <span class="func-tag">Control de Calidad</span>
+                </div>
+                <div class="func-desc">
+                    Ejecuta un diagnóstico exhaustivo en el navegador: verifica que existan las <strong>23 rutas</strong>, que no haya IDs duplicados, que todas tengan origen, destino, paradas y que las coordenadas GPS estén dentro de la caja geográfica de Pasto (lat 1.10 a 1.30, lng -77.40 a -77.20). Muestra en consola <code>✓ 23 rutas cargadas</code> y <code>✓ Datos validados</code>.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">inicializarMapa()</span>
+                    <span class="func-tag">Leaflet Core</span>
+                </div>
+                <div class="func-desc">
+                    Crea la instancia de Leaflet centrada exactamente en <code>[1.213, -77.281]</code> (Pasto) con zoom 13. Configura la capa base de OpenStreetMap y crea grupos de capas aislados (<code>capaRutasTodas</code>, <code>capaRutaActiva</code> y <code>capaParadas</code>) para manipularlas sin conflictos.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">mostrarTodasLasRutas()</span>
+                    <span class="func-tag">Vista Global</span>
+                </div>
+                <div class="func-desc">
+                    Dibuja simultáneamente las 23 rutas en el mapa. A cada una le asigna su color oficial de la paleta <code>COLORES_RUTAS</code> y asocia eventos de clic para que al tocar cualquier línea del mapa se abra la ficha de esa ruta.
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: FUNCIONES (PARTE 2: RECORRIDOS, PARADAS Y SENTIDOS) -->
+        <section class="slide" data-slide="7">
+            <span class="slide-tag">Diccionario de Funciones (2/3)</span>
+            <h2 class="slide-title">Recorridos, Sentidos y Paradas</h2>
+            <p class="slide-subtitle">Funciones que gestionan la interactividad entre el mapa y las rutas.</p>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">seleccionarRuta(rutaId, sentido = 'IDA')</span>
+                    <span class="func-tag">Controlador Principal</span>
+                </div>
+                <div class="func-desc">
+                    Oculta las demás rutas del mapa, limpia marcadores previos y orquesta la visualización de la ruta elegida invocando a <code>mostrarRutaEnMapa()</code>, <code>mostrarParadas()</code> y <code>mostrarFichaRuta()</code>, desplazando suavemente la vista del usuario al panel.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">mostrarRutaEnMapa(ruta, sentido)</span>
+                    <span class="func-tag">Geometría</span>
+                </div>
+                <div class="func-desc">
+                    Obtiene el array de coordenadas GPS del sentido activo (<code>coordenadasIda</code> o <code>coordenadasRetorno</code>), traza la polilínea con grosor de 6px y ejecuta <strong><code>map.fitBounds()</code></strong> para hacer zoom automático y encuadrar todo el recorrido en la pantalla del dispositivo.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">mostrarParadas(ruta, sentido)</span>
+                    <span class="func-tag">Marcadores</span>
+                </div>
+                <div class="func-desc">
+                    Recorre las paradas georreferenciadas y crea marcadores HTML circulares numerados (con verde para el origen y rojo para el destino). Cada marcador incluye un popup con el nombre de la parada, sentido y código oficial del SETP.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">renderizarParadasLista(paradas, ruta, sentido)</span>
+                    <span class="func-tag">Lista Interactiva</span>
+                </div>
+                <div class="func-desc">
+                    Genera el listado desplazable debajo del mapa. Al hacer clic en cualquier parada de la lista, el mapa vuela suavemente (<code>setView</code> zoom 16) hasta ella y abre automáticamente su globo informativo.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">mostrarSentido(nuevoSentido)</span>
+                    <span class="func-tag">Alternador</span>
+                </div>
+                <div class="func-desc">
+                    Conmuta el estado entre <code>'IDA'</code> y <code>'RETORNO'</code>, redibujando en tiempo real las polilíneas, las paradas y actualizando la ficha técnica.
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 8: FUNCIONES (PARTE 3: BÚSQUEDA, GEOLOCALIZACIÓN Y TEMA) -->
+        <section class="slide" data-slide="8">
+            <span class="slide-tag">Diccionario de Funciones (3/3)</span>
+            <h2 class="slide-title">Buscador, Geolocalización y Modo Oscuro</h2>
+            <p class="slide-subtitle">Funciones que enriquecen la experiencia del usuario final.</p>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">normalizarTexto(texto)</span>
+                    <span class="func-tag">Filtro de Texto</span>
+                </div>
+                <div class="func-desc">
+                    Convierte cadenas a minúsculas y elimina acentos mediante descomposición canónica Unicode (<code>normalize('NFD').replace(/[\u0300-\u036f]/g, '')</code>). Permite que "narino", "NARIÑO" y "nariño" coincidan exactamente.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">buscarRutas(query)</span>
+                    <span class="func-tag">Algoritmo de Búsqueda</span>
+                </div>
+                <div class="func-desc">
+                    Examina en tiempo real códigos (<code>C10</code>), orígenes, destinos y las más de 1.700 paradas. Incluye diccionario semántico para puntos neurálgicos de Pasto (<strong>UDENAR</strong>, <strong>CESMAG</strong>, <strong>Parque Nariño</strong>, <strong>Terminal</strong>, <strong>Hospital</strong> y <strong>Centro</strong>), detallando en cada tarjeta la razón de la coincidencia.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">centrarEnUbicacion()</span>
+                    <span class="func-tag">GPS</span>
+                </div>
+                <div class="func-desc">
+                    Utiliza la API <code>navigator.geolocation</code> para ubicar al usuario. Coloca un marcador pulsante animado con círculo de precisión en metros y centra el mapa. Si el permiso es denegado, emite un aviso toast sin romper la aplicación.
+                </div>
+            </div>
+
+            <div class="func-box">
+                <div class="func-header">
+                    <span class="func-name">inicializarTema() / activarModoOscuro()</span>
+                    <span class="func-tag">Apariencia</span>
+                </div>
+                <div class="func-desc">
+                    Detecta la preferencia del sistema operativo o lee <code>localStorage</code> para alternar el atributo <code>data-theme="dark"</code> en el elemento raíz, modificando instantáneamente todas las variables CSS de color.
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 9: PWA Y SERVICE WORKER -->
+        <section class="slide" data-slide="9">
+            <span class="slide-tag">Arquitectura Offline</span>
+            <h2 class="slide-title">Ingeniería PWA y Service Worker</h2>
+            <p class="slide-subtitle">Cómo se logra que la aplicación funcione 100% offline y como app nativa.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header" style="color: var(--color-cyan);">
+                        <span class="icon">⚡</span>
+                        <span>Ciclo de Vida de sw.js</span>
+                    </div>
+                    <div class="card-body" style="font-size: 0.85rem; line-height: 1.6;">
+                        <strong>1. Evento Install:</strong><br>
+                        Descarga y precachea de forma individual y segura todos los recursos del núcleo (HTML, CSS, JS, Leaflet y dataset de rutas).<br><br>
+                        <strong>2. Evento Activate:</strong><br>
+                        Elimina versiones obsoletas de la caché y reclama el control inmediato de las pestañas activas con <code>clients.claim()</code>.<br><br>
+                        <strong>3. Evento Fetch (Interceptor):</strong><br>
+                        Estrategia <strong>Cache First</strong>. Si no hay conexión, sirve el recurso desde la memoria del dispositivo.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header" style="color: var(--color-success);">
+                        <span class="icon">🛡️</span>
+                        <span>Solución a la Instalación Móvil (WebAPK)</span>
+                    </div>
+                    <div class="card-body" style="font-size: 0.85rem; line-height: 1.6;">
+                        <strong>El Desafío Resuelto:</strong><br>
+                        Al instalarse en Android, el sistema abre la app como una ventana independiente que a menudo añade parámetros a la URL (ej. <code>?utm_source=homescreen</code>).<br><br>
+                        <strong>La Solución Técnica:</strong><br>
+                        Se implementó un interceptor de navegación con <code>{ ignoreSearch: true }</code> y mapeo cruzado entre <code>/</code> e <code>index.html</code>, garantizando que el móvil arranque la app de inmediato sin mostrar nunca el error de "no puede acceder al sitio web".
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 10: CONCLUSIONES Y ENLACES -->
+        <section class="slide" data-slide="10">
+            <span class="slide-tag">Cierre & Conclusiones</span>
+            <h2 class="slide-title">Conclusiones y Despliegue en Producción</h2>
+            <p class="slide-subtitle">Un proyecto listo para servir a la comunidad de San Juan de Pasto.</p>
+
+            <div class="grid-3" style="margin-bottom: 1.5rem;">
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+                    <div style="font-weight: 800; margin-bottom: 0.25rem; color: #FFFFFF;">Impacto Social</div>
+                    <div style="font-size: 0.8rem; color: var(--color-text-muted);">Información de transporte público accesible a toda la comunidad sin costo de datos móviles.</div>
+                </div>
+
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚡</div>
+                    <div style="font-weight: 800; margin-bottom: 0.25rem; color: #FFFFFF;">Alto Rendimiento</div>
+                    <div style="font-size: 0.8rem; color: var(--color-text-muted);">Tecnología vanilla sin frameworks: carga en menos de 100 ms y consume mínima batería.</div>
+                </div>
+
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📱</div>
+                    <div style="font-weight: 800; margin-bottom: 0.25rem; color: #FFFFFF;">Multiplataforma</div>
+                    <div style="font-size: 0.8rem; color: var(--color-text-muted);">Instalable en Android, iOS y escritorio gracias a estándares PWA modernos.</div>
+                </div>
+            </div>
+
+            <div class="card" style="background: linear-gradient(135deg, rgba(10, 31, 68, 0.9) 0%, rgba(255, 107, 0, 0.15) 100%); border-color: var(--color-accent);">
+                <div class="card-header">
+                    <span class="icon">🔗</span>
+                    <span>Enlaces Oficiales del Proyecto</span>
+                </div>
+                <div class="card-body" style="display: flex; flex-direction: column; gap: 0.75rem; color: #FFFFFF; font-size: 0.95rem;">
+                    <div>🌐 <strong>Aplicación en Vivo:</strong> <a href="https://rutipasto.urbanoivan10.workers.dev/" target="_blank" style="color: var(--color-accent); text-decoration: underline;">https://rutipasto.urbanoivan10.workers.dev/</a></div>
+                    <div>📦 <strong>Repositorio GitHub:</strong> <a href="https://github.com/AnderHolden/RutiPasto" target="_blank" style="color: var(--color-cyan); text-decoration: underline;">https://github.com/AnderHolden/RutiPasto</a></div>
+                    <div>🚌 <strong>Fuente de Datos:</strong> Sistema Estratégico de Transporte Público de Pasto (SETPasto / Avante)</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer de Navegación -->
+    <footer class="pres-footer">
+        <div class="footer-shortcuts">
+            <span>Usa las teclas <span class="kbd">←</span> <span class="kbd">→</span> o <span class="kbd">Espacio</span> para navegar</span>
+            <span>•</span>
+            <span><span class="kbd">F</span> Pantalla completa</span>
+        </div>
+        <div class="nav-buttons">
+            <button id="btnPrev" class="btn-nav" type="button">
+                <span>← Anterior</span>
+            </button>
+            <button id="btnNext" class="btn-nav" type="button">
+                <span>Siguiente →</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Script Controlador de Diapositivas -->
+    <script>
+        const totalSlides = 10;
+        let currentSlide = 1;
+
+        const slides = document.querySelectorAll('.slide');
+        const slideCounter = document.getElementById('slideCounter');
+        const progressBar = document.getElementById('progressBar');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+
+        function updateSlide(newIndex) {
+            if (newIndex < 1 || newIndex > totalSlides) return;
+            
+            currentSlide = newIndex;
+
+            slides.forEach(s => s.classList.remove('active'));
+            const activeSlide = document.querySelector(`.slide[data-slide="${currentSlide}"]`);
+            if (activeSlide) activeSlide.classList.add('active');
+
+            // Actualizar contador y barra de progreso
+            if (slideCounter) slideCounter.textContent = `Diapositiva ${currentSlide} / ${totalSlides}`;
+            if (progressBar) progressBar.style.width = `${(currentSlide / totalSlides) * 100}%`;
+
+            // Actualizar botones
+            if (btnPrev) btnPrev.disabled = currentSlide === 1;
+            if (btnNext) {
+                if (currentSlide === totalSlides) {
+                    btnNext.innerHTML = '<span>Reiniciar ↺</span>';
+                } else {
+                    btnNext.innerHTML = '<span>Siguiente →</span>';
+                }
+            }
+
+            // Scroll al inicio de la diapositiva
+            const viewport = document.querySelector('.slides-viewport');
+            if (viewport) viewport.scrollTop = 0;
+        }
+
+        btnPrev.addEventListener('click', () => updateSlide(currentSlide - 1));
+        btnNext.addEventListener('click', () => {
+            if (currentSlide === totalSlides) {
+                updateSlide(1);
+            } else {
+                updateSlide(currentSlide + 1);
+            }
+        });
+
+        // Navegación por teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                if (currentSlide === totalSlides) updateSlide(1);
+                else updateSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                updateSlide(currentSlide - 1);
+            } else if (e.key.toLowerCase() === 'f') {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                    document.exitFullscreen().catch(() => {});
+                }
+            } else if (e.key === 'Home') {
+                updateSlide(1);
+            } else if (e.key === 'End') {
+                updateSlide(totalSlides);
+            }
+        });
+
+        // Inicializar estado
+        updateSlide(1);
+    </script>
+</body>
+</html>
