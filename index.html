@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Rutas Pasto Offline - SETPasto Sistema de Transporte</title>
+    <meta name="description" content="Consulta offline del Sistema Estratégico de Transporte Público de Pasto (SETPasto / Avante). 23 rutas oficiales con paradas y recorridos urbanos.">
+    <meta name="theme-color" content="#0A1F44">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Rutas Pasto">
+
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+    <!-- Leaflet CSS (Almacenado localmente, sin dependencias CDN) -->
+    <link rel="stylesheet" href="assets/leaflet/leaflet.css">
+
+    <!-- Estilos de la Aplicación -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Header Principal -->
+    <header class="app-header">
+        <div class="header-container">
+            <a href="#" class="brand" onclick="mostrarTodasLasRutas(); return false;">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="15" rx="3"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <circle cx="7" cy="14" r="1.5"></circle>
+                        <circle cx="17" cy="14" r="1.5"></circle>
+                        <line x1="6" y1="18" x2="6" y2="21"></line>
+                        <line x1="18" y1="18" x2="18" y2="21"></line>
+                    </svg>
+                </div>
+                <div class="brand-info">
+                    <span class="brand-title">Rutas<span>Pasto</span></span>
+                    <span class="brand-sub">SETPasto Offline</span>
+                </div>
+            </a>
+
+            <div class="header-actions">
+                <div id="connectionStatus" class="status-badge" title="Estado de conexión">
+                    <span class="status-dot"></span> Online
+                </div>
+
+                <button id="btnInstallApp" class="btn-install" type="button" title="Instalar como App">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Instalar
+                </button>
+
+                <button id="themeToggle" class="btn-icon" type="button" aria-label="Cambiar tema claro u oscuro" title="Modo Claro/Oscuro">
+                    <span id="themeIcon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+
+        <!-- Buscador Inteligente de Destinos y Rutas -->
+        <section class="search-section" aria-label="Buscador de rutas y lugares">
+            <div class="search-wrapper">
+                <span class="search-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </span>
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="¿A dónde vas? Ej: Parque Nariño, CESMAG, Terminal..." 
+                    aria-label="Buscar rutas por barrio, parada o lugar de interés"
+                    autocomplete="off"
+                >
+                <button id="searchClear" class="search-clear" type="button" aria-label="Limpiar búsqueda" title="Borrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Accesos rápidos de búsqueda común en Pasto -->
+            <div class="quick-tags">
+                <button type="button" class="tag-btn" data-query="Centro">📍 Centro</button>
+                <button type="button" class="tag-btn" data-query="Parque Nariño">🏛️ Parque Nariño</button>
+                <button type="button" class="tag-btn" data-query="UDENAR">🎓 UDENAR</button>
+                <button type="button" class="tag-btn" data-query="CESMAG">🎓 CESMAG</button>
+                <button type="button" class="tag-btn" data-query="Terminal">🚌 Terminal</button>
+                <button type="button" class="tag-btn" data-query="Hospital">🏥 Hospital</button>
+                <button type="button" class="tag-btn" data-query="Chapalito">Chapalito</button>
+                <button type="button" class="tag-btn" data-query="Obonuco">Obonuco</button>
+            </div>
+
+            <!-- Panel de Resultados de Búsqueda -->
+            <div id="searchResultsPanel" class="search-results-panel">
+                <div class="search-results-header">
+                    <span>Resultados de la búsqueda</span>
+                    <span id="searchResultsCount" style="color: var(--color-accent); font-weight: 700;">0 resultados</span>
+                </div>
+                <div id="resultsGrid" class="results-grid"></div>
+            </div>
+        </section>
+
+        <!-- Ficha de Ruta Seleccionada (Arriba o junto al mapa cuando está activa) -->
+        <section id="routePanel" class="route-panel" aria-label="Detalles de la ruta seleccionada">
+            <div class="route-panel-header">
+                <div class="route-panel-title-area">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <span id="panelRouteCode" class="route-code-badge">C10</span>
+                        <span id="panelRouteType" class="route-type-tag">Complementaria</span>
+                    </div>
+                    <div class="route-trajectory">
+                        <span id="panelTrajOrigen">Jamondino</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                        <span id="panelTrajDestino">Briceño</span>
+                    </div>
+                </div>
+                <button id="btnClosePanel" class="btn-close-panel" type="button" title="Ver todas las rutas" aria-label="Cerrar ficha de ruta">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Control de Sentido [ IDA ] [ RETORNO ] -->
+            <div class="direction-control-bar">
+                <div class="direction-buttons">
+                    <button id="btnSentidoIda" class="btn-direction active" type="button">IDA</button>
+                    <button id="btnSentidoRetorno" class="btn-direction" type="button">RETORNO</button>
+                </div>
+                <div id="directionSummary" class="direction-summary">
+                    Jamondino → Briceño
+                </div>
+            </div>
+
+            <!-- Ficha Técnica -->
+            <div class="route-info-grid">
+                <div class="info-item">
+                    <span class="info-label">Horario Despacho</span>
+                    <span id="infoHorario" class="info-value">05:50 - 20:00</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frecuencia Estimada</span>
+                    <span id="infoFrecuencia" class="info-value">7 - 10 min</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Tarifa Oficial</span>
+                    <span id="infoTarifa" class="info-value">$2.700 COP</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Paradas Registradas</span>
+                    <span id="infoParadas" class="info-value">40 paradas</span>
+                </div>
+            </div>
+
+            <!-- Listado Interactivo de Paradas -->
+            <div class="stops-section">
+                <div class="stops-header">
+                    <div class="stops-title">
+                        <span>Paradas del recorrido</span>
+                        <span id="stopsCounter" class="stops-counter">40 paradas</span>
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--color-text-muted);">Toca una parada para enfocarla en el mapa</span>
+                </div>
+                <div id="stopsListScroll" class="stops-list-scroll"></div>
+            </div>
+        </section>
+
+        <!-- Sección del Mapa -->
+        <section id="mapSection" class="map-container-box" aria-label="Mapa interactivo de rutas de Pasto">
+            <div id="map"></div>
+
+            <!-- Controles flotantes sobre el mapa -->
+            <div class="map-floating-controls">
+                <button id="btnShowAll" class="btn-map-control" type="button" title="Ver todas las 23 rutas en el mapa">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                        <line x1="8" y1="2" x2="8" y2="18"></line>
+                        <line x1="16" y1="6" x2="16" y2="22"></line>
+                    </svg>
+                    Todas las rutas
+                </button>
+                <button id="btnLocation" class="btn-map-control" type="button" title="Ubicar mi posición actual">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                    </svg>
+                    Mi ubicación
+                </button>
+            </div>
+
+            <!-- Aviso offline amigable para el mapa -->
+            <div id="offlineBanner" class="offline-banner">
+                <span>⚡ <strong>Modo sin conexión:</strong> Consulta tus rutas, paradas y horarios almacenados localmente.</span>
+            </div>
+        </section>
+
+        <!-- Catálogo General: Todas las Rutas (C1-C16 y E1-E7) -->
+        <section class="catalog-section" aria-label="Directorio completo de rutas">
+            <div class="catalog-header">
+                <h2 class="section-title">
+                    <span>Todas las rutas del SETPasto</span>
+                </h2>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="TODAS" type="button">Todas (23)</button>
+                    <button class="filter-tab" data-filter="COMPLEMENTARIA" type="button">Complementarias (16)</button>
+                    <button class="filter-tab" data-filter="ESTRATEGICA" type="button">Estratégicas (7)</button>
+                </div>
+            </div>
+
+            <!-- Grupo Rutas Complementarias -->
+            <div id="groupComplementarias" class="routes-group">
+                <h3 class="group-title">
+                    <span>🔷 Rutas Complementarias (C1 – C16)</span>
+                </h3>
+                <div id="gridComplementarias" class="routes-grid"></div>
+            </div>
+
+            <!-- Grupo Rutas Estratégicas -->
+            <div id="groupEstrategicas" class="routes-group">
+                <h3 class="group-title">
+                    <span>🔶 Rutas Estratégicas (E1 – E7)</span>
+                </h3>
+                <div id="gridEstrategicas" class="routes-grid"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <p><strong>Rutas Pasto Offline</strong> — Sistema Estratégico de Transporte Público de San Juan de Pasto (SETPasto / Avante).</p>
+            <p style="font-size: 0.75rem; color: var(--color-text-muted);">
+                Los recorridos y horarios del transporte público pueden cambiar según disposiciones operativas y decretos municipales.
+                Esta aplicación utiliza información almacenada localmente para garantizar disponibilidad sin conexión. Tarifa vigente: $2.700 COP.
+            </p>
+            <div class="footer-links">
+                <a href="https://avante.gov.co" target="_blank" rel="noopener">Portal Avante SETP</a>
+                <span>•</span>
+                <a href="#" onclick="mostrarTodasLasRutas(); window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Volver arriba</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts locales (Sin dependencias externas) -->
+    <script src="assets/leaflet/leaflet.js"></script>
+    <script src="data/rutas.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

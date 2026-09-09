@@ -1,0 +1,24 @@
+{
+  "name": "Rutas de Buses Pasto Offline",
+  "short_name": "Rutas Pasto",
+  "description": "Sistema de transporte público urbano de San Juan de Pasto (SETPasto / Avante) - 23 rutas oficiales con paradas y recorridos offline.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0A1F44",
+  "theme_color": "#0A1F44",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
