@@ -393,13 +393,41 @@ body {
 }
 
 .result-badge {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: var(--color-accent);
     background: var(--color-accent-bg);
-    padding: 0.15rem 0.45rem;
+    padding: 0.25rem 0.5rem;
     border-radius: var(--radius-sm);
     display: inline-block;
+    line-height: 1.35;
+}
+
+.result-badge-stop {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #0369A1;
+    background: #E0F2FE;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    line-height: 1.35;
+}
+
+[data-theme="dark"] .result-badge-stop {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38BDF8;
+}
+
+.tag-btn-highlight {
+    background: var(--color-accent) !important;
+    color: #FFFFFF !important;
+    border-color: var(--color-accent) !important;
+    font-weight: 700 !important;
+}
+
+.tag-btn-highlight:hover {
+    background: var(--color-accent-hover) !important;
 }
 
 /* Map Section */

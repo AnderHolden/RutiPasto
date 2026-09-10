@@ -497,6 +497,28 @@ function normalizarTexto(texto) {
 /**
  * Realiza la búsqueda de rutas por nombre, código, paradas, lugares y barrios
  */
+/**
+ * Calcula la distancia en metros entre dos puntos geográficos (Fórmula de Haversine)
+ */
+function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+}
+
+/**
+ * Realiza la búsqueda inteligente de rutas por nombre, código, paradas,
+ * lugares populares, colegios, clínicas, comercios de Google Maps y barrios de Pasto
+ */
 function buscarRutas(query) {
     const qNorm = normalizarTexto(query);
     const panel = document.getElementById('searchResultsPanel');
@@ -512,40 +534,77 @@ function buscarRutas(query) {
 
     const coincidencias = [];
 
-    AppState.rutas.forEach((ruta) => {
-        let razon = null;
-        let paradaCoincidente = null;
+    // 1. Búsqueda en el Directorio Extenso de Lugares Populares de Pasto (LUGARES_PASTO)
+    let lugaresEncontrados = [];
+    if (typeof LUGARES_PASTO !== 'undefined' && Array.isArray(LUGARES_PASTO)) {
+        lugaresEncontrados = LUGARES_PASTO.filter(lugar => {
+            const nombreNorm = normalizarTexto(lugar.nombre);
+            const dirNorm = normalizarTexto(lugar.direccion);
+            const catNorm = normalizarTexto(lugar.categoria);
+            const paradaNorm = normalizarTexto(lugar.paradaCercana);
+            const aliasMatch = (lugar.alias || []).some(al => {
+                const alNorm = normalizarTexto(al);
+                return alNorm.includes(qNorm) || qNorm.includes(alNorm);
+            });
 
-        // 1. Coincidencia por código directo (ej. "C10", "E1")
+            return nombreNorm.includes(qNorm) || dirNorm.includes(qNorm) || catNorm.includes(qNorm) || paradaNorm.includes(qNorm) || aliasMatch;
+        });
+    }
+
+    // Si encontramos lugares registrados (ej. Instituto Mutis, Farma Center, Alkosto, etc.)
+    if (lugaresEncontrados.length > 0) {
+        lugaresEncontrados.forEach(lugar => {
+            (lugar.rutas || []).forEach(rutaId => {
+                const ruta = AppState.rutas.find(r => r.id === rutaId);
+                if (ruta && !coincidencias.some(c => c.ruta.id === ruta.id)) {
+                    coincidencias.push({
+                        ruta,
+                        razon: `📍 Cerca de: ${lugar.nombre}`,
+                        paradaInfo: `🚏 Parada sugerida: ${lugar.paradaCercana}`,
+                        lugarRef: lugar
+                    });
+                }
+            });
+        });
+    }
+
+    // 2. Búsqueda directa en Rutas Oficiales (Código, Origen, Destino, Paradas)
+    AppState.rutas.forEach((ruta) => {
+        if (coincidencias.some(c => c.ruta.id === ruta.id)) return;
+
+        let razon = null;
+        let paradaInfo = null;
+
+        // A. Código directo (ej. "C10", "E1")
         if (normalizarTexto(ruta.id) === qNorm || normalizarTexto(ruta.id).includes(qNorm)) {
-            razon = `Ruta ${ruta.id}`;
+            razon = `Ruta oficial ${ruta.id}`;
         }
-        // 2. Coincidencia por origen o destino
+        // B. Origen o Destino
         else if (normalizarTexto(ruta.origen).includes(qNorm)) {
             razon = `Origen: ${ruta.origen}`;
         } else if (normalizarTexto(ruta.destino).includes(qNorm)) {
             razon = `Destino: ${ruta.destino}`;
         }
-        // 3. Coincidencia por paradas (Ida y Retorno)
+        // C. Coincidencia por Paradas (Ida y Retorno)
         else {
             const paradaIda = (ruta.paradasIda || []).find(p => normalizarTexto(p.nombre).includes(qNorm));
             if (paradaIda) {
-                razon = `Parada: ${paradaIda.nombre}`;
-                paradaCoincidente = paradaIda;
+                razon = `Parada ida: ${paradaIda.nombre}`;
+                paradaInfo = `🚏 En sentido hacia ${ruta.destino}`;
             } else {
                 const paradaRet = (ruta.paradasRetorno || []).find(p => normalizarTexto(p.nombre).includes(qNorm));
                 if (paradaRet) {
                     razon = `Parada retorno: ${paradaRet.nombre}`;
-                    paradaCoincidente = paradaRet;
+                    paradaInfo = `🚏 En sentido hacia ${ruta.origen}`;
                 }
             }
         }
 
-        // Casos especiales de sinónimos comunes en Pasto
+        // D. Sinónimos adicionales y calles/carreras frecuentes
         if (!razon) {
             if (qNorm.includes('centro') || qNorm.includes('plaza de narino') || qNorm.includes('parque narino')) {
                 const tieneCentro = (ruta.paradasIda || []).concat(ruta.paradasRetorno || [])
-                    .some(p => normalizarTexto(p.nombre).match(/centro|plaza|carnaval|alcaldia|bombona|san juan bosco/));
+                    .some(p => normalizarTexto(p.nombre).match(/centro|plaza|carnaval|alcaldia|bombona|san juan bosco|san agustin/));
                 if (tieneCentro) {
                     razon = 'Conecta con el Centro de Pasto';
                 }
@@ -571,7 +630,7 @@ function buscarRutas(query) {
         }
 
         if (razon) {
-            coincidencias.push({ ruta, razon, paradaCoincidente });
+            coincidencias.push({ ruta, razon, paradaInfo });
         }
     });
 
@@ -579,7 +638,12 @@ function buscarRutas(query) {
 
     if (coincidencias.length === 0) {
         if (countLabel) countLabel.textContent = '0 resultados';
-        grid.innerHTML = '<div style="padding: 1rem; color: var(--color-text-muted); grid-column: 1/-1;">No se encontraron rutas para tu búsqueda. Intenta con nombres de barrios, avenidas o sitios clave como Parque Nariño, Udenar, CESMAG o Terminal.</div>';
+        grid.innerHTML = `
+            <div style="padding: 1.25rem; color: var(--color-text-muted); grid-column: 1/-1; text-align: center; background: var(--color-surface); border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+                <p style="font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text);">No se encontraron rutas para "${query}"</p>
+                <p style="font-size: 0.85rem; line-height: 1.5;">Puedes buscar por colegios (ej. <em>Mutis, San Felipe, Javeriano</em>), droguerías (ej. <em>Farma Center</em>), clínicas (ej. <em>Fátima, San Pedro</em>), centros comerciales (ej. <em>Unicentro, Alkosto</em>) o barrios y paradas.</p>
+            </div>
+        `;
         panel.style.display = 'block';
         return;
     }
@@ -588,22 +652,33 @@ function buscarRutas(query) {
         countLabel.textContent = `${coincidencias.length} ruta${coincidencias.length > 1 ? 's' : ''} encontrada${coincidencias.length > 1 ? 's' : ''}`;
     }
 
-    coincidencias.forEach(({ ruta, razon }) => {
+    coincidencias.forEach(({ ruta, razon, paradaInfo, lugarRef }) => {
         const card = document.createElement('div');
         card.className = 'result-card';
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 900; font-size: 1.1rem; color: var(--color-accent);">${ruta.id}</span>
+                <span style="font-weight: 900; font-size: 1.15rem; color: var(--color-accent);">${ruta.id}</span>
                 <span style="font-size: 0.72rem; color: var(--color-text-muted); font-weight: 700;">${ruta.tipo}</span>
             </div>
             <div style="font-size: 0.88rem; font-weight: 700; color: var(--color-text);">${ruta.origen} → ${ruta.destino}</div>
-            <div class="result-badge">Coincidencia: ${razon}</div>
-            <div style="font-size: 0.75rem; color: var(--color-text-muted);">${(ruta.paradasIda ? ruta.paradasIda.length : 0) + (ruta.paradasRetorno ? ruta.paradasRetorno.length : 0)} paradas en total</div>
+            <div class="result-badge">${razon}</div>
+            ${paradaInfo ? `<div class="result-badge-stop">${paradaInfo}</div>` : ''}
+            <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.2rem;">
+                ${(ruta.paradasIda ? ruta.paradasIda.length : 0) + (ruta.paradasRetorno ? ruta.paradasRetorno.length : 0)} paradas registradas
+            </div>
         `;
 
         card.addEventListener('click', () => {
             panel.style.display = 'none';
             seleccionarRuta(ruta.id, 'IDA');
+
+            // Si hay un punto de interés con coordenadas, centrar mapa en el lugar
+            if (lugarRef && lugarRef.lat && lugarRef.lng && AppState.mapa) {
+                setTimeout(() => {
+                    AppState.mapa.setView([lugarRef.lat, lugarRef.lng], 16, { animate: true });
+                }, 350);
+            }
+
             const mapBox = document.getElementById('mapSection');
             if (mapBox) mapBox.scrollIntoView({ behavior: 'smooth' });
         });
@@ -612,6 +687,178 @@ function buscarRutas(query) {
     });
 
     panel.style.display = 'block';
+}
+
+/**
+ * Busca y presenta las rutas cuyas paradas están a menos de 750 metros de la ubicación del usuario
+ */
+function buscarRutasCercaDeMi() {
+    if (!navigator.geolocation) {
+        mostrarToast('Tu navegador no soporta geolocalización.');
+        return;
+    }
+
+    mostrarToast('📍 Localizando tu posición en Pasto...');
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude, accuracy } = position.coords;
+            const MAX_DISTANCIA = 700; // 700 metros a la redonda
+
+            // Centrar mapa y colocar marcador de usuario
+            dibujarMarcadorUsuario(latitude, longitude, accuracy);
+
+            const rutasCercanas = [];
+
+            AppState.rutas.forEach(ruta => {
+                let mejorParada = null;
+                let minDist = Infinity;
+                let mejorSentido = 'IDA';
+
+                (ruta.paradasIda || []).forEach(p => {
+                    if (p.lat && p.lng) {
+                        const d = calcularDistanciaMetros(latitude, longitude, p.lat, p.lng);
+                        if (d < minDist) {
+                            minDist = d;
+                            mejorParada = p;
+                            mejorSentido = 'IDA';
+                        }
+                    }
+                });
+
+                (ruta.paradasRetorno || []).forEach(p => {
+                    if (p.lat && p.lng) {
+                        const d = calcularDistanciaMetros(latitude, longitude, p.lat, p.lng);
+                        if (d < minDist) {
+                            minDist = d;
+                            mejorParada = p;
+                            mejorSentido = 'RETORNO';
+                        }
+                    }
+                });
+
+                if (mejorParada && minDist <= MAX_DISTANCIA) {
+                    rutasCercanas.push({
+                        ruta,
+                        parada: mejorParada,
+                        distancia: Math.round(minDist),
+                        sentido: mejorSentido
+                    });
+                }
+            });
+
+            // Ordenar de la más cercana a la más lejana
+            rutasCercanas.sort((a, b) => a.distancia - b.distancia);
+
+            const panel = document.getElementById('searchResultsPanel');
+            const grid = document.getElementById('resultsGrid');
+            const countLabel = document.getElementById('searchResultsCount');
+
+            if (!panel || !grid) return;
+
+            grid.innerHTML = '';
+
+            if (rutasCercanas.length === 0) {
+                if (countLabel) countLabel.textContent = '0 rutas cercanas';
+                grid.innerHTML = `
+                    <div style="padding: 1.25rem; color: var(--color-text-muted); grid-column: 1/-1; text-align: center;">
+                        <p style="font-weight: 700; margin-bottom: 0.4rem; color: var(--color-text);">No encontramos paradas de bus a menos de 700m de tu posición actual.</p>
+                        <p style="font-size: 0.85rem;">Si estás fuera del perímetro urbano de San Juan de Pasto, puedes usar el buscador para consultar cualquier barrio o destino.</p>
+                    </div>
+                `;
+                panel.style.display = 'block';
+                return;
+            }
+
+            if (countLabel) {
+                countLabel.textContent = `${rutasCercanas.length} rutas a menos de 700m`;
+            }
+
+            rutasCercanas.forEach(({ ruta, parada, distancia, sentido }) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 900; font-size: 1.15rem; color: var(--color-accent);">${ruta.id}</span>
+                        <span style="font-size: 0.72rem; color: #16A34A; font-weight: 800; background: #DCFCE7; padding: 0.15rem 0.45rem; border-radius: 4px;">A ${distancia} m</span>
+                    </div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: var(--color-text);">${ruta.origen} → ${ruta.destino}</div>
+                    <div class="result-badge-stop">🚏 Parada más cercana: <strong>${parada.nombre}</strong> (${sentido})</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">Toca para abrir el trazado y ver la parada</div>
+                `;
+
+                card.addEventListener('click', () => {
+                    panel.style.display = 'none';
+                    seleccionarRuta(ruta.id, sentido);
+
+                    if (AppState.mapa && parada.lat && parada.lng) {
+                        setTimeout(() => {
+                            AppState.mapa.setView([parada.lat, parada.lng], 16, { animate: true });
+                        }, 350);
+                    }
+
+                    const mapBox = document.getElementById('mapSection');
+                    if (mapBox) mapBox.scrollIntoView({ behavior: 'smooth' });
+                });
+
+                grid.appendChild(card);
+            });
+
+            panel.style.display = 'block';
+            mostrarToast(`✓ Encontradas ${rutasCercanas.length} rutas cerca de ti.`);
+        },
+        (error) => {
+            console.warn('Error GPS:', error.message);
+            mostrarToast('No se pudo acceder a tu ubicación. Verifica los permisos de GPS.');
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 30000
+        }
+    );
+}
+
+/**
+ * Coloca o actualiza el marcador y círculo de precisión del usuario en Leaflet
+ */
+function dibujarMarcadorUsuario(latitude, longitude, accuracy) {
+    if (!AppState.mapa) return;
+
+    if (AppState.marcadorUsuario) {
+        AppState.mapa.removeLayer(AppState.marcadorUsuario);
+    }
+    if (AppState.circuloUsuario) {
+        AppState.mapa.removeLayer(AppState.circuloUsuario);
+    }
+
+    const userIcon = L.divIcon({
+        className: 'leaflet-user-icon',
+        html: '<div class="user-location-marker"></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+    });
+
+    AppState.marcadorUsuario = L.marker([latitude, longitude], { icon: userIcon });
+    AppState.circuloUsuario = L.circle([latitude, longitude], {
+        radius: accuracy || 40,
+        color: '#0284C7',
+        fillColor: '#0284C7',
+        fillOpacity: 0.15,
+        weight: 1
+    });
+
+    AppState.marcadorUsuario.bindPopup(`
+        <div style="font-family: var(--font-family); text-align: center;">
+            <strong>Tu ubicación actual</strong><br>
+            <span style="font-size: 0.75rem; color: #64748B;">Precisión: ±${Math.round(accuracy)}m</span>
+        </div>
+    `).openPopup();
+
+    AppState.marcadorUsuario.addTo(AppState.mapa);
+    AppState.circuloUsuario.addTo(AppState.mapa);
+
+    AppState.mapa.setView([latitude, longitude], 15, { animate: true });
 }
 
 /* ==========================================================================
@@ -632,41 +879,7 @@ function centrarEnUbicacion() {
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const { latitude, longitude, accuracy } = position.coords;
-
-            if (AppState.marcadorUsuario) {
-                AppState.mapa.removeLayer(AppState.marcadorUsuario);
-            }
-            if (AppState.circuloUsuario) {
-                AppState.mapa.removeLayer(AppState.circuloUsuario);
-            }
-
-            const userIcon = L.divIcon({
-                className: 'leaflet-user-icon',
-                html: '<div class="user-location-marker"></div>',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-            });
-
-            AppState.marcadorUsuario = L.marker([latitude, longitude], { icon: userIcon });
-            AppState.circuloUsuario = L.circle([latitude, longitude], {
-                radius: accuracy || 40,
-                color: '#0284C7',
-                fillColor: '#0284C7',
-                fillOpacity: 0.15,
-                weight: 1
-            });
-
-            AppState.marcadorUsuario.bindPopup(`
-                <div style="font-family: var(--font-family); text-align: center;">
-                    <strong>Tu ubicación actual</strong><br>
-                    <span style="font-size: 0.75rem; color: #64748B;">Precisión: ±${Math.round(accuracy)}m</span>
-                </div>
-            `).openPopup();
-
-            AppState.marcadorUsuario.addTo(AppState.mapa);
-            AppState.circuloUsuario.addTo(AppState.mapa);
-
-            AppState.mapa.setView([latitude, longitude], 15, { animate: true });
+            dibujarMarcadorUsuario(latitude, longitude, accuracy);
             mostrarToast('✓ Ubicación obtenida.');
         },
         (error) => {
@@ -820,11 +1033,22 @@ function inicializarEventos() {
         });
     }
 
+    // Botón especial: Rutas Cerca de Mí
+    const btnCercaDeMi = document.getElementById('btnRutasCercaDeMi');
+    if (btnCercaDeMi) {
+        btnCercaDeMi.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            if (searchClear) searchClear.style.display = 'none';
+            buscarRutasCercaDeMi();
+        });
+    }
+
     // Botones de sugerencias rápidas
-    const tagBtns = document.querySelectorAll('.tag-btn');
+    const tagBtns = document.querySelectorAll('.tag-btn[data-query]');
     tagBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const query = btn.getAttribute('data-query');
+            if (!query) return;
             if (searchInput) {
                 searchInput.value = query;
                 if (searchClear) searchClear.style.display = 'flex';
