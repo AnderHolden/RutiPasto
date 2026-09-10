@@ -14,6 +14,7 @@ const AppState = {
     capaRutasTodas: null,
     capaRutaActiva: null,
     capaParadas: null,
+    capaLugares: null,
     marcadorUsuario: null,
     circuloUsuario: null,
     marcadoresParadasMap: new Map(),
@@ -159,6 +160,7 @@ function inicializarMapa() {
         AppState.capaRutasTodas = L.featureGroup().addTo(AppState.mapa);
         AppState.capaRutaActiva = L.featureGroup().addTo(AppState.mapa);
         AppState.capaParadas = L.featureGroup().addTo(AppState.mapa);
+        AppState.capaLugares = L.featureGroup().addTo(AppState.mapa);
 
         // Control de zoom en posición inferior derecha para facilitar uso táctil
         AppState.mapa.zoomControl.setPosition('bottomright');
@@ -221,8 +223,11 @@ function mostrarTodasLasRutas() {
 
 /**
  * Selecciona una ruta específica, dibuja su trazado, marcadores y abre la ficha
+ * @param {string} rutaId Código de la ruta (ej. 'C10')
+ * @param {string} sentido 'IDA' | 'RETORNO'
+ * @param {Object} [destinoLugar] Lugar de destino opcional con coordenadas {nombre, lat, lng, direccion}
  */
-function seleccionarRuta(rutaId, sentido = 'IDA') {
+function seleccionarRuta(rutaId, sentido = 'IDA', destinoLugar = null) {
     const ruta = AppState.rutas.find(r => r.id === rutaId);
     if (!ruta || !AppState.mapa) return;
 
@@ -240,11 +245,54 @@ function seleccionarRuta(rutaId, sentido = 'IDA') {
     // Actualizar la ficha de información
     mostrarFichaRuta(ruta, sentido);
 
-    // Desplazar suavemente a la ficha
+    // Si se seleccionó desde un lugar de destino (ej. Instituto Mutis, Farma Center, etc.)
+    if (destinoLugar && destinoLugar.lat && destinoLugar.lng) {
+        const poiIcon = L.divIcon({
+            className: 'leaflet-poi-icon',
+            html: `
+                <div class="custom-poi-marker" title="${destinoLugar.nombre}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                </div>
+            `,
+            iconSize: [38, 38],
+            iconAnchor: [19, 19],
+            popupAnchor: [0, -19]
+        });
+
+        const poiMarker = L.marker([destinoLugar.lat, destinoLugar.lng], { icon: poiIcon });
+        poiMarker.bindPopup(`
+            <div style="font-family: var(--font-family); min-width: 190px; text-align: center; line-height: 1.4;">
+                <div style="font-size: 0.72rem; color: #E11D48; font-weight: 800; text-transform: uppercase;">Destino Buscado</div>
+                <div style="font-weight: 800; font-size: 0.95rem; color: #0F172A; margin: 4px 0;">${destinoLugar.nombre}</div>
+                ${destinoLugar.direccion ? `<div style="font-size: 0.75rem; color: #64748B; margin-bottom: 6px;">📍 ${destinoLugar.direccion}</div>` : ''}
+                <div style="font-size: 0.75rem; background: #FFF1F2; color: #E11D48; padding: 4px 8px; border-radius: 4px; font-weight: 700;">
+                    Ruta ${ruta.id} (${sentido})
+                </div>
+            </div>
+        `);
+
+        AppState.capaLugares.addLayer(poiMarker);
+
+        // Centrar y enfocar directamente en el lugar buscado con zoom detallado
+        setTimeout(() => {
+            AppState.mapa.setView([destinoLugar.lat, destinoLugar.lng], 16, { animate: true });
+            poiMarker.openPopup();
+        }, 250);
+    }
+
+    // Llevar la vista inmediatamente al mapa interactivo
+    const mapBox = document.getElementById('mapSection');
+    if (mapBox) {
+        mapBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Mostrar el panel de detalles
     const panel = document.getElementById('routePanel');
     if (panel) {
         panel.style.display = 'block';
-        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
@@ -424,6 +472,7 @@ function limpiarCapasMapa() {
     if (AppState.capaRutasTodas) AppState.capaRutasTodas.clearLayers();
     if (AppState.capaRutaActiva) AppState.capaRutaActiva.clearLayers();
     if (AppState.capaParadas) AppState.capaParadas.clearLayers();
+    if (AppState.capaLugares) AppState.capaLugares.clearLayers();
     AppState.marcadoresParadasMap.clear();
 }
 
@@ -670,17 +719,7 @@ function buscarRutas(query) {
 
         card.addEventListener('click', () => {
             panel.style.display = 'none';
-            seleccionarRuta(ruta.id, 'IDA');
-
-            // Si hay un punto de interés con coordenadas, centrar mapa en el lugar
-            if (lugarRef && lugarRef.lat && lugarRef.lng && AppState.mapa) {
-                setTimeout(() => {
-                    AppState.mapa.setView([lugarRef.lat, lugarRef.lng], 16, { animate: true });
-                }, 350);
-            }
-
-            const mapBox = document.getElementById('mapSection');
-            if (mapBox) mapBox.scrollIntoView({ behavior: 'smooth' });
+            seleccionarRuta(ruta.id, 'IDA', lugarRef);
         });
 
         grid.appendChild(card);

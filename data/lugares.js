@@ -14,14 +14,18 @@ const LUGARES_PASTO = [
     // ==========================================
     {
         id: "poi-mutis",
-        nombre: "Instituto José Celestino Mutis / Gran Colombiano",
-        alias: ["instituto mutis", "colegio mutis", "mutis", "gran colombiano", "grancolombiano", "instituto gran colombiano", "rumipamba", "plazoleta rumipamba"],
+        nombre: "Institución Educativa Gran Colombiano José Celestino Mutis",
+        alias: [
+            "instituto mutis", "colegio mutis", "mutis", "gran colombiano", "grancolombiano", 
+            "instituto gran colombiano", "jose celestino mutis", "institucion gran colombiano jose mutis",
+            "rumipamba", "plazoleta rumipamba", "san andresito", "calle 16 carrera 25"
+        ],
         categoria: "Colegio / Instituto",
-        direccion: "Carrera 26 con Calle 16, Sector Rumipamba",
-        lat: 1.2132,
-        lng: -77.2798,
-        paradaCercana: "Carrera 26 Calle 16 / Plazoleta Rumipamba / Templo San Agustín",
-        rutas: ["C1", "C7", "C9", "C10", "C11", "C15", "E1", "E2"]
+        direccion: "Calle 16 Carrera 25 / San Andresito - Rumipamba",
+        lat: 1.216323,
+        lng: -77.281720,
+        paradaCercana: "San Andrés (49m) / Carrera 27 Calle 16 (88m) / Carmelitas (133m)",
+        rutas: ["C2", "C10", "E1", "E4", "C3", "C7", "C15", "C16", "E3", "E5", "E7", "E2", "E6", "C4", "C1", "C13"]
     },
     {
         id: "poi-san-felipe",

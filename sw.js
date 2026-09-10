@@ -4,7 +4,7 @@
  * Diseñado para garantizar disponibilidad offline instantánea y soporte para PWA instalada en móvil.
  */
 
-const CACHE_NAME = 'rutas-pasto-v1.3';
+const CACHE_NAME = 'rutas-pasto-v1.4';
 
 const STATIC_ASSETS = [
     '/',

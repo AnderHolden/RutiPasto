@@ -121,7 +121,36 @@
             </div>
         </section>
 
-        <!-- Ficha de Ruta Seleccionada (Arriba o junto al mapa cuando está activa) -->
+        <!-- Sección del Mapa (Visible inmediatamente bajo el buscador) -->
+        <section id="mapSection" class="map-container-box" aria-label="Mapa interactivo de rutas de Pasto">
+            <div id="map"></div>
+
+            <!-- Controles flotantes sobre el mapa -->
+            <div class="map-floating-controls">
+                <button id="btnShowAll" class="btn-map-control" type="button" title="Ver todas las 23 rutas en el mapa">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                        <line x1="8" y1="2" x2="8" y2="18"></line>
+                        <line x1="16" y1="6" x2="16" y2="22"></line>
+                    </svg>
+                    Todas las rutas
+                </button>
+                <button id="btnLocation" class="btn-map-control" type="button" title="Ubicar mi posición actual">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                    </svg>
+                    Mi ubicación
+                </button>
+            </div>
+
+            <!-- Aviso offline amigable para el mapa -->
+            <div id="offlineBanner" class="offline-banner">
+                <span>⚡ <strong>Modo sin conexión:</strong> Consulta tus rutas, paradas y horarios almacenados localmente.</span>
+            </div>
+        </section>
+
+        <!-- Ficha de Ruta Seleccionada (Detalles técnicos y paradas) -->
         <section id="routePanel" class="route-panel" aria-label="Detalles de la ruta seleccionada">
             <div class="route-panel-header">
                 <div class="route-panel-title-area">
@@ -187,35 +216,6 @@
                     <span style="font-size: 0.75rem; color: var(--color-text-muted);">Toca una parada para enfocarla en el mapa</span>
                 </div>
                 <div id="stopsListScroll" class="stops-list-scroll"></div>
-            </div>
-        </section>
-
-        <!-- Sección del Mapa -->
-        <section id="mapSection" class="map-container-box" aria-label="Mapa interactivo de rutas de Pasto">
-            <div id="map"></div>
-
-            <!-- Controles flotantes sobre el mapa -->
-            <div class="map-floating-controls">
-                <button id="btnShowAll" class="btn-map-control" type="button" title="Ver todas las 23 rutas en el mapa">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                        <line x1="8" y1="2" x2="8" y2="18"></line>
-                        <line x1="16" y1="6" x2="16" y2="22"></line>
-                    </svg>
-                    Todas las rutas
-                </button>
-                <button id="btnLocation" class="btn-map-control" type="button" title="Ubicar mi posición actual">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-                    </svg>
-                    Mi ubicación
-                </button>
-            </div>
-
-            <!-- Aviso offline amigable para el mapa -->
-            <div id="offlineBanner" class="offline-banner">
-                <span>⚡ <strong>Modo sin conexión:</strong> Consulta tus rutas, paradas y horarios almacenados localmente.</span>
             </div>
         </section>
 
