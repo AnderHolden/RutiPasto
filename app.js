@@ -983,14 +983,57 @@ function actualizarIconoTema(esOscuro) {
    ========================================================================== */
 
 /**
- * Registra el Service Worker
+ * Registra el Service Worker y gestiona actualizaciones automáticas PWA
  */
 function registrarPWA() {
     if ('serviceWorker' in navigator) {
+        let refreshing = false;
+
+        // Cuando un nuevo Service Worker toma el control, recargar la interfaz limpiamente
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+            }
+        });
+
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js', { scope: '/' })
                 .then((reg) => {
                     console.log('✓ Service Worker registrado con éxito');
+
+                    // 1. Si ya hay una nueva versión instalada en segundo plano esperando
+                    if (reg.waiting) {
+                        mostrarBannerActualizacion(reg.waiting);
+                    }
+
+                    // 2. Si se detecta un nuevo Service Worker instalándose
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        if (!newWorker) return;
+
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                mostrarBannerActualizacion(newWorker);
+                            }
+                        });
+                    });
+
+                    // 3. Forzar verificación de actualizaciones al regresar a la app o reconectarse
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') {
+                            reg.update().catch(() => {});
+                        }
+                    });
+
+                    window.addEventListener('online', () => {
+                        reg.update().catch(() => {});
+                    });
+
+                    // 4. Verificación periódica cada 15 minutos en segundo plano
+                    setInterval(() => {
+                        reg.update().catch(() => {});
+                    }, 15 * 60 * 1000);
                 })
                 .catch((err) => {
                     console.warn('Error al registrar Service Worker:', err);
@@ -1049,6 +1092,37 @@ function actualizarEstadoConexion() {
     window.addEventListener('online', check);
     window.addEventListener('offline', check);
     check();
+}
+
+/**
+ * Muestra la notificación flotante de actualización disponible en la PWA
+ */
+function mostrarBannerActualizacion(worker) {
+    const banner = document.getElementById('updateBanner');
+    const btnApply = document.getElementById('btnApplyUpdate');
+    const btnDismiss = document.getElementById('btnDismissUpdate');
+
+    if (!banner) return;
+    banner.style.display = 'flex';
+
+    if (btnApply) {
+        btnApply.onclick = () => {
+            btnApply.disabled = true;
+            btnApply.textContent = 'Actualizando...';
+            if (worker) {
+                // Notifica al Service Worker que tome el control de inmediato
+                worker.postMessage({ type: 'SKIP_WAITING' });
+            } else {
+                window.location.reload();
+            }
+        };
+    }
+
+    if (btnDismiss) {
+        btnDismiss.onclick = () => {
+            banner.style.display = 'none';
+        };
+    }
 }
 
 /* ==========================================================================

@@ -4,7 +4,7 @@
  * Diseñado para garantizar disponibilidad offline instantánea y soporte para PWA instalada en móvil.
  */
 
-const CACHE_NAME = 'rutas-pasto-v1.5';
+const CACHE_NAME = 'rutas-pasto-v1.6';
 
 const STATIC_ASSETS = [
     '/',
@@ -49,6 +49,13 @@ self.addEventListener('install', (event) => {
             console.log('[SW] Pre-caché completado con éxito.');
         }).then(() => self.skipWaiting())
     );
+});
+
+// Escucha mensajes del cliente para forzar actualización inmediata (SKIP_WAITING)
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 // Activación: Limpieza de versiones antiguas de caché y control inmediato
