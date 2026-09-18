@@ -127,6 +127,14 @@
 
             <!-- Controles flotantes sobre el mapa -->
             <div class="map-floating-controls">
+                <button id="btnNewAlert" class="btn-map-control btn-map-alert" type="button" title="Reportar desvío o trancón en Pasto">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Reportar Alerta
+                </button>
                 <button id="btnShowAll" class="btn-map-control" type="button" title="Ver todas las 23 rutas en el mapa">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
@@ -174,6 +182,9 @@
                     </svg>
                 </button>
             </div>
+
+            <!-- Área de Alertas y Novedades Activas para esta ruta -->
+            <div id="routeAlertsArea" style="display: none;"></div>
 
             <!-- Control de Sentido [ IDA ] [ RETORNO ] -->
             <div class="direction-control-bar">
@@ -267,10 +278,73 @@
         </div>
     </footer>
 
+    <!-- Modal para Reportar Alerta Ciudadana en Tiempo Real (Supabase) -->
+    <div id="modalAlerta" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-labelledby="modalAlertaTitle">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="color: #EF4444; font-size: 1.2rem;">📢</span>
+                    <h3 id="modalAlertaTitle" style="font-size: 1.1rem; font-weight: 800; margin: 0;">Reportar Novedad en Pasto</h3>
+                </div>
+                <button id="btnCloseModalAlerta" class="btn-close-modal" type="button" aria-label="Cerrar modal">&times;</button>
+            </div>
+            <form id="formNuevaAlerta" class="modal-body">
+                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.8rem;">
+                    Informa a otros usuarios sobre desvíos, trancones o cierres viales. Se sincronizará en tiempo real con Supabase.
+                </p>
+
+                <div class="form-group">
+                    <label for="alertaTipo" class="form-label">Tipo de Novedad</label>
+                    <select id="alertaTipo" class="form-select" required>
+                        <option value="desvio">🔀 Desvío de Ruta</option>
+                        <option value="congestion">🚗 Trancón / Congestión Fuerte</option>
+                        <option value="obra">🚧 Calle Cerrada / Obras</option>
+                        <option value="accidente">⚠️ Accidente Vial</option>
+                        <option value="retraso">⏱️ Retraso en Despacho de Buses</option>
+                        <option value="otro">ℹ️ Otro Aviso</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="alertaTitulo" class="form-label">Título corto / Lugar</label>
+                    <input type="text" id="alertaTitulo" class="form-input" placeholder="Ej: Cierre en Calle 18 con Cra 27" required maxlength="80">
+                </div>
+
+                <div class="form-group">
+                    <label for="alertaRuta" class="form-label">Ruta Afectada (Opcional)</label>
+                    <select id="alertaRuta" class="form-select">
+                        <option value="">Cualquier ruta / Toda la vía</option>
+                        <option value="C1">C1</option><option value="C2">C2</option><option value="C3">C3</option>
+                        <option value="C4">C4</option><option value="C5">C5</option><option value="C6">C6</option>
+                        <option value="C7">C7</option><option value="C8">C8</option><option value="C9">C9</option>
+                        <option value="C10">C10</option><option value="C11">C11</option><option value="C12">C12</option>
+                        <option value="C13">C13</option><option value="C14">C14</option><option value="C15">C15</option>
+                        <option value="C16">C16</option><option value="E1">E1</option><option value="E2">E2</option>
+                        <option value="E3">E3</option><option value="E4">E4</option><option value="E5">E5</option>
+                        <option value="E6">E6</option><option value="E7">E7</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="alertaDesc" class="form-label">Descripción detallada</label>
+                    <textarea id="alertaDesc" class="form-textarea" rows="2" placeholder="Explica brevemente lo que ocurre para que otros usuarios tomen rutas alternas..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="btnCancelModalAlerta" class="btn-secondary">Cancelar</button>
+                    <button type="submit" id="btnSubmitAlerta" class="btn-primary">
+                        <span>Publicar Alerta</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts locales (Sin dependencias externas) -->
     <script src="assets/leaflet/leaflet.js"></script>
     <script src="data/rutas.js"></script>
     <script src="data/lugares.js"></script>
+    <script src="data/supabase.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

@@ -15,6 +15,7 @@ const AppState = {
     capaRutaActiva: null,
     capaParadas: null,
     capaLugares: null,
+    capaAlertas: null,
     marcadorUsuario: null,
     circuloUsuario: null,
     marcadoresParadasMap: new Map(),
@@ -67,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarTodasLasRutas();
     registrarPWA();
     actualizarEstadoConexion();
+    inicializarAlertasSupabase();
 });
 
 /**
@@ -161,6 +163,7 @@ function inicializarMapa() {
         AppState.capaRutaActiva = L.featureGroup().addTo(AppState.mapa);
         AppState.capaParadas = L.featureGroup().addTo(AppState.mapa);
         AppState.capaLugares = L.featureGroup().addTo(AppState.mapa);
+        AppState.capaAlertas = L.featureGroup().addTo(AppState.mapa);
 
         // Control de zoom en posición inferior derecha para facilitar uso táctil
         AppState.mapa.zoomControl.setPosition('bottomright');
@@ -455,6 +458,9 @@ function mostrarFichaRuta(ruta, sentido) {
         btnIda.classList.toggle('active', sentido === 'IDA');
         btnRetorno.classList.toggle('active', sentido === 'RETORNO');
     }
+
+    // Mostrar novedades o alertas comunitarias activas para esta ruta (Supabase)
+    renderizarAlertasDeRuta(ruta.id);
 }
 
 /**
@@ -473,6 +479,7 @@ function limpiarCapasMapa() {
     if (AppState.capaRutaActiva) AppState.capaRutaActiva.clearLayers();
     if (AppState.capaParadas) AppState.capaParadas.clearLayers();
     if (AppState.capaLugares) AppState.capaLugares.clearLayers();
+    if (AppState.capaAlertas) AppState.capaAlertas.clearLayers();
     AppState.marcadoresParadasMap.clear();
 }
 
@@ -1177,4 +1184,209 @@ function mostrarToast(mensaje) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3500);
+}
+
+/* ==========================================================================
+   ALERTAS Y REPORTES COMUNITARIOS EN TIEMPO REAL (SUPABASE)
+   ========================================================================== */
+
+/**
+ * Inicializa la suscripción a Supabase y eventos del modal de alertas
+ */
+function inicializarAlertasSupabase() {
+    if (typeof SupabaseService === 'undefined') return;
+
+    // Inicializar servicio
+    SupabaseService.iniciar();
+
+    // Escuchar cambios de alertas (descarga inicial y actualizaciones en tiempo real)
+    SupabaseService.suscribir((alertas) => {
+        renderizarAlertasEnMapa(alertas);
+        if (AppState.rutaSeleccionada) {
+            renderizarAlertasDeRuta(AppState.rutaSeleccionada.id);
+        }
+    });
+
+    // Control del Modal de Reportar Alerta
+    const btnNewAlert = document.getElementById('btnNewAlert');
+    const modalAlerta = document.getElementById('modalAlerta');
+    const btnCloseModal = document.getElementById('btnCloseModalAlerta');
+    const btnCancelModal = document.getElementById('btnCancelModalAlerta');
+    const formNuevaAlerta = document.getElementById('formNuevaAlerta');
+
+    function abrirModal() {
+        if (!navigator.onLine) {
+            mostrarToast('⚠️ Para reportar novedades necesitas conexión a internet.');
+            return;
+        }
+        if (modalAlerta) {
+            modalAlerta.classList.add('active');
+            modalAlerta.setAttribute('aria-hidden', 'false');
+            // Autoseleccionar ruta si hay una activa
+            const selectRuta = document.getElementById('alertaRuta');
+            if (selectRuta && AppState.rutaSeleccionada) {
+                selectRuta.value = AppState.rutaSeleccionada.id;
+            }
+        }
+    }
+
+    function cerrarModal() {
+        if (modalAlerta) {
+            modalAlerta.classList.remove('active');
+            modalAlerta.setAttribute('aria-hidden', 'true');
+            if (formNuevaAlerta) formNuevaAlerta.reset();
+        }
+    }
+
+    if (btnNewAlert) btnNewAlert.addEventListener('click', abrirModal);
+    if (btnCloseModal) btnCloseModal.addEventListener('click', cerrarModal);
+    if (btnCancelModal) btnCancelModal.addEventListener('click', cerrarModal);
+
+    // Cerrar al pulsar fondo oscuro
+    if (modalAlerta) {
+        modalAlerta.addEventListener('click', (e) => {
+            if (e.target === modalAlerta) cerrarModal();
+        });
+    }
+
+    // Envío del formulario a Supabase
+    if (formNuevaAlerta) {
+        formNuevaAlerta.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const tipo = document.getElementById('alertaTipo').value;
+            const titulo = document.getElementById('alertaTitulo').value.trim();
+            const ruta_afectada = document.getElementById('alertaRuta').value;
+            const descripcion = document.getElementById('alertaDesc').value.trim();
+
+            if (!titulo) return;
+
+            // Coordenadas: si el usuario tiene GPS activado, usar su ubicación; de lo contrario, centro de Pasto
+            let lat = CENTRO_PASTO[0];
+            let lng = CENTRO_PASTO[1];
+
+            if (AppState.marcadorUsuario) {
+                const pos = AppState.marcadorUsuario.getLatLng();
+                lat = pos.lat;
+                lng = pos.lng;
+            } else if (AppState.mapa) {
+                const center = AppState.mapa.getCenter();
+                lat = center.lat;
+                lng = center.lng;
+            }
+
+            const btnSubmit = document.getElementById('btnSubmitAlerta');
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.textContent = 'Enviando...';
+            }
+
+            try {
+                await SupabaseService.crearAlerta({
+                    tipo,
+                    titulo,
+                    descripcion,
+                    ruta_afectada,
+                    lat,
+                    lng
+                });
+
+                cerrarModal();
+                mostrarToast('✓ Alerta comunitaria publicada en Supabase con éxito.');
+            } catch (err) {
+                mostrarToast(err.message || 'Error al enviar reporte.');
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<span>Publicar Alerta</span>';
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Renderiza los pines de alertas activas sobre el mapa de Leaflet
+ */
+function renderizarAlertasEnMapa(alertas) {
+    if (!AppState.capaAlertas || !AppState.mapa) return;
+    AppState.capaAlertas.clearLayers();
+
+    const iconosTipo = {
+        'desvio': '🔀',
+        'congestion': '🚗',
+        'obra': '🚧',
+        'accidente': '⚠️',
+        'retraso': '⏱️',
+        'otro': '📢'
+    };
+
+    alertas.forEach(alerta => {
+        if (!alerta.lat || !alerta.lng) return;
+
+        const iconoEmoji = iconosTipo[alerta.tipo] || '📢';
+
+        const alertIcon = L.divIcon({
+            className: 'leaflet-alert-icon',
+            html: `<div class="custom-alert-marker" title="${alerta.titulo}">${iconoEmoji}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -16]
+        });
+
+        const marker = L.marker([alerta.lat, alerta.lng], { icon: alertIcon });
+        
+        const rutaTag = alerta.ruta_afectada 
+            ? `<div style="font-size: 0.75rem; background: #FEE2E2; color: #DC2626; padding: 2px 6px; border-radius: 4px; font-weight: 800; display: inline-block; margin-top: 4px;">Ruta ${alerta.ruta_afectada}</div>`
+            : '<div style="font-size: 0.72rem; color: #64748B; margin-top: 4px;">Aviso general en la vía</div>';
+
+        marker.bindPopup(`
+            <div style="font-family: var(--font-family); min-width: 180px; line-height: 1.4;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 4px;">
+                    <span style="font-size: 1.1rem;">${iconoEmoji}</span>
+                    <strong style="font-size: 0.92rem; color: #0F172A;">${alerta.titulo}</strong>
+                </div>
+                ${alerta.descripcion ? `<div style="font-size: 0.8rem; color: #475569; margin-bottom: 6px;">${alerta.descripcion}</div>` : ''}
+                ${rutaTag}
+                <div style="font-size: 0.7rem; color: #94A3B8; margin-top: 6px; border-top: 1px solid #E2E8F0; padding-top: 4px;">
+                    Reporte ciudadano en vivo
+                </div>
+            </div>
+        `);
+
+        AppState.capaAlertas.addLayer(marker);
+    });
+}
+
+/**
+ * Muestra alertas relevantes en la ficha técnica cuando el usuario selecciona una ruta
+ */
+function renderizarAlertasDeRuta(rutaId) {
+    const area = document.getElementById('routeAlertsArea');
+    if (!area) return;
+
+    if (typeof SupabaseService === 'undefined' || !SupabaseService.alertasActivas) {
+        area.style.display = 'none';
+        return;
+    }
+
+    const alertasRuta = SupabaseService.alertasActivas.filter(a => a.ruta_afectada === rutaId);
+
+    if (alertasRuta.length === 0) {
+        area.style.display = 'none';
+        area.innerHTML = '';
+        return;
+    }
+
+    const alerta = alertasRuta[0]; // Mostrar la más reciente
+    area.innerHTML = `
+        <div class="route-alert-banner">
+            <span style="font-size: 1.1rem; line-height: 1;">⚠️</span>
+            <div>
+                <strong>Novedad en ruta ${rutaId}:</strong> ${alerta.titulo}
+                ${alerta.descripcion ? `<div style="font-size: 0.78rem; opacity: 0.9; margin-top: 2px;">${alerta.descripcion}</div>` : ''}
+            </div>
+        </div>
+    `;
+    area.style.display = 'block';
 }

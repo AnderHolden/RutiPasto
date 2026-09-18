@@ -4,7 +4,7 @@
  * Diseñado para garantizar disponibilidad offline instantánea y soporte para PWA instalada en móvil.
  */
 
-const CACHE_NAME = 'rutas-pasto-v1.4';
+const CACHE_NAME = 'rutas-pasto-v1.5';
 
 const STATIC_ASSETS = [
     '/',
@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/data/rutas.js',
     '/data/lugares.js',
+    '/data/supabase.js',
     '/assets/icons/icon-192.png',
     '/assets/icons/icon-512.png',
     '/assets/leaflet/leaflet.js',
